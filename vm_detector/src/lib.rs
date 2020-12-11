@@ -6,10 +6,14 @@ static AMD_BOCHS: &str = "AMD Athlon(tm) processor";
 static INTEL_BOCHS: &str = "              Intel(R) Pentium(R) 4 CPU        ";
 static QEMU: &str = "QEMU Virtual CPU";
 
+
+// Our general-purpose detection structure
 pub struct CheckVM{
 }
 
 impl CheckVM {
+    /// NOTE: THE BELOW IS BASICALLY THE WORK OF a0rtega's pafish PROGRAM
+    // doubley-internal cpu brand getter (uses CPUID)
     fn _get_cpu_brand(&mut self, buffer: &mut [u8], offset: usize, level: u32){
         let mut eax: u32 = level;
         let mut ebx: u32;
@@ -168,12 +172,30 @@ impl CheckVM {
         self.get_cpu_brand(&mut cpu_brand);
         let vendor_str = from_utf8(&cpu_brand).unwrap();
 
-        if vendor_str.eq(INTEL_BOCHS){
+        if vendor_str.eq(QEMU){
             return true;
         }
         
         false
     }
+
+    /// END PAFISH CODE
+    /// 
+    /// START Windows-specific detections
+    
+    fn win_checks(&mut self) -> bool {
+        false
+    }
+
+    /// END Windows-specific detections
+    /// 
+    /// START Linux-specific detections 
+    
+    fn lin_check(&mut self) -> bool {
+        false
+    }
+
+    /// END Linux-specific detections 
 
     pub fn check_vm(&mut self) -> bool{
         let mut is_ok = false;
@@ -181,6 +203,19 @@ impl CheckVM {
         is_ok |= self.check_bochs_amd2();
         is_ok |= self.check_bochs_intel();
         is_ok |= self.check_qemu_cpu();
+
+        if cfg!(windows){
+            // windows-specific detections
+            println!("windows detections");
+            is_ok |= self.win_checks();
+        } else if cfg!(linux){
+            // Linux-specific detections
+            println!("linux detections");
+            is_ok |= self.lin_check();
+        } else {
+            println!("WOA WTF HAPPENED THERE???");
+        }
+
 
         is_ok
     }
