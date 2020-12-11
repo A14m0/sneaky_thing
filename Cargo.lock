@@ -3,3 +3,10 @@
 [[package]]
 name = "sneaky_encryptor"
 version = "0.1.0"
+dependencies = [
+ "vm_detector",
+]
+
+[[package]]
+name = "vm_detector"
+version = "0.1.0"
