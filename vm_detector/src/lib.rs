@@ -1,5 +1,6 @@
 #![feature(asm)]
 use std::str::from_utf8;
+use std::env::consts::OS;
 
 // define static strings here
 static AMD_BOCHS: &str = "AMD Athlon(tm) processor";
@@ -19,19 +20,19 @@ impl CheckVM {
         let mut ebx: u32;
         let mut ecx: u32;
         let mut edx: u32;
-        
+
         // run CPUID with special flags
         unsafe{asm!{"mov eax, ebx", in("ebx") eax}};
-        unsafe{asm!{"cpuid", inout("rax") eax, out("ebx") ebx, 
+        unsafe{asm!{"cpuid", inout("rax") eax, out("ebx") ebx,
                                             out("ecx") ecx, out("edx") edx}};
-        
+
         // convert to u8 bytes
         let eax_bytes = eax.to_be_bytes();
         let ebx_bytes = ebx.to_be_bytes();
         let ecx_bytes = ecx.to_be_bytes();
-        let edx_bytes = edx.to_be_bytes(); 
+        let edx_bytes = edx.to_be_bytes();
 
-        
+
         //https://github.com/a0rtega/pafish/blob/master/pafish/bochs.c
 
         // write the data to the stuff
@@ -59,7 +60,7 @@ impl CheckVM {
         buffer[16] = 0;
 
     }
-    
+
     fn get_cpu_brand(&mut self, cpu_brand: &mut [u8]){
         let mut eax: u32;
 
@@ -76,7 +77,7 @@ impl CheckVM {
             // zero the string
             cpu_brand[48] = 0;
         }
-    
+
     }
 
     fn get_cpu_vendor(&mut self, cpu_vendor: &mut [u8]){
@@ -92,13 +93,13 @@ impl CheckVM {
         unsafe{asm!{"cpuid"}};
         unsafe{asm!{"nop", out("ebx") ebx, out("ecx") ecx, out("edx") edx}};
 
-        
+
         // convert to u8 bytes
         let ebx_bytes = ebx.to_be_bytes();
         let ecx_bytes = ecx.to_be_bytes();
-        let edx_bytes = edx.to_be_bytes(); 
+        let edx_bytes = edx.to_be_bytes();
 
-        
+
         //https://github.com/a0rtega/pafish/blob/master/pafish/bochs.c
 
         // write the data to the stuff
@@ -119,7 +120,7 @@ impl CheckVM {
 
         // terminate the string
         cpu_vendor[12] = 0;
-        
+
     }
 
     fn check_bochs_amd1(&mut self) -> bool {
@@ -149,7 +150,7 @@ impl CheckVM {
         unsafe{asm!("b2not_detected: xor ebx, ebx; jmp b2exit;")};
         unsafe{asm!("b2detected: mov ebx, 0x1;")};
         unsafe{asm!("b2exit: nop", out("eax") dat)};
-        
+
         dat == 1
     }
 
@@ -175,27 +176,27 @@ impl CheckVM {
         if vendor_str.eq(QEMU){
             return true;
         }
-        
+
         false
     }
 
     /// END PAFISH CODE
-    /// 
+    ///
     /// START Windows-specific detections
-    
+
     fn win_checks(&mut self) -> bool {
         false
     }
 
     /// END Windows-specific detections
-    /// 
-    /// START Linux-specific detections 
-    
+    ///
+    /// START Linux-specific detections
+
     fn lin_check(&mut self) -> bool {
         false
     }
 
-    /// END Linux-specific detections 
+    /// END Linux-specific detections
 
     pub fn check_vm(&mut self) -> bool{
         let mut is_ok = false;
@@ -204,16 +205,19 @@ impl CheckVM {
         is_ok |= self.check_bochs_intel();
         is_ok |= self.check_qemu_cpu();
 
-        if cfg!(windows){
+        if OS.eq("windows"){
             // windows-specific detections
-            println!("windows detections");
+            println!("[INFO] windows detections");
             is_ok |= self.win_checks();
-        } else if cfg!(linux){
+        } else if OS.eq("linux"){
             // Linux-specific detections
-            println!("linux detections");
+            println!("[INFO] linux detections");
             is_ok |= self.lin_check();
+        } else if OS.eq("android") {
+            println!("[INFO] android detections (UNIM)");
+            unimplemented!();
         } else {
-            println!("WOA WTF HAPPENED THERE???");
+            println!("[ERR] Unknown OS {}", OS);
         }
 
 

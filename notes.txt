@@ -1,0 +1,4 @@
+Sources to look into:
+    https://sreelakshmip.wordpress.com/2018/03/20/devil-detect-virtual-machine-in-linux/
+    https://github.com/a0rtega/pafish
+
