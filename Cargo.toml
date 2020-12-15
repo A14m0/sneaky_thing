@@ -7,7 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["vm_detector", "smblib"]
+members = ["vm_detector", 
+           "smblib"]
 
 [dependencies]
 vm_detector = {path="vm_detector", version="*"}
