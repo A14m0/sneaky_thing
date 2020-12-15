@@ -12,6 +12,8 @@ use std::{net::TcpStream, io::{Read,Write}};
 /// 
 /// Additional features we should look into (totally not inspired by NotPetya...)
 /// Mimikatz password exposing --> https://github.com/gentilkiwi/mimikatz
+///     Potentially smaller footprint --> https://github.com/returnvar/wce
+/// 
 
 struct SneakiNet{
     id: u32, 
