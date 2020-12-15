@@ -2,12 +2,10 @@ use vm_detector::CheckVM;
 use std::{net::TcpStream, io::{Read,Write}};
 
 
-
-
-
 struct SneakiNet{
     id: u32, 
-} 
+}
+
 
 impl SneakiNet {
     fn initialize(&mut self, target: &str){
@@ -61,7 +59,6 @@ impl SneakiNet {
     }
 
 }
-
 
 
 

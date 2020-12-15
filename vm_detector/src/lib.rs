@@ -87,9 +87,6 @@ impl CheckVM {
 
         // so this is actually the part that doesnt work...
         unsafe{asm!{"xor eax, eax"}};
-        //unsafe{asm!{"xor rbx, rbx"}};
-        //unsafe{asm!{"xor rcx, rcx"}};
-        //unsafe{asm!{"xor rdx, rdx"}};
         unsafe{asm!{"cpuid"}};
         unsafe{asm!{"nop", out("ebx") ebx, out("ecx") ecx, out("edx") edx}};
 
