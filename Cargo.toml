@@ -8,8 +8,10 @@ edition = "2018"
 
 [workspace]
 members = ["vm_detector", 
-           "smblib"]
+           "smblib",
+           "targeter"]
 
 [dependencies]
 vm_detector = {path="vm_detector", version="*"}
 smblib = {path="smblib", version="*"}
+targeter = {path="targeter", version="*"}

