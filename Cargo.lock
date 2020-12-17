@@ -435,6 +435,7 @@ name = "targeter"
 version = "0.1.0"
 dependencies = [
  "ipaddress",
+ "num",
  "ping",
 ]
 

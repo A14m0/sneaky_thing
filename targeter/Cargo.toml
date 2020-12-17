@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 ipaddress = "0.1.2"
 ping = "0.2.0"
+num = "0.1.32" # needed for mutable use of ipaddress iteration
