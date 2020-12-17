@@ -1,0 +1,6 @@
+Network Discovery 
+    1. Speed up network discovery
+        a. Could reduce ping latency even more
+        b. Could use something like Avahi or local name resoluion
+    2. Make network discovery more efficient for exploitation
+        a. more "if i see a target I get it before moving on" 

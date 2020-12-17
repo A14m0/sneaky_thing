@@ -4,15 +4,17 @@
 
 /// base structure/class thing for IP targeting 
 pub mod targeter {
+    mod ping::errors;
+
     use std::net::IpAddr;
     use std::net::Ipv4Addr;
     use std::net::TcpStream;
     use std::str::FromStr;
 
     use num::bigint::BigUint;
-    use num::One;
     use num::ToPrimitive;
-    use core::ops::Add;
+    
+    static PING_FREQ: f32 = 0.2;
 
 
     #[derive(Debug)]
@@ -31,14 +33,13 @@ pub mod targeter {
 
     /// Targeter Structure
     pub struct Targeter {
-        id: u32,
         pub valid_ips: Vec<String>,
     }
 
     impl Targeter{
         // constructor
         pub fn new() -> Self{
-            Targeter{id: 0, valid_ips: Vec::new()}
+            Targeter{valid_ips: Vec::new()}
         }
 
         fn get_locip(&mut self) -> Result<ipaddress::IPAddress, NetError>{
@@ -53,12 +54,10 @@ pub mod targeter {
         }
 
         fn check_target(&self, ip: &ipaddress::IPAddress) -> 
-                                Result<ipaddress::IPAddress, NetError> {
-            let mut o = 0;
+                                Result<(), NetError> {
             if ip.is_network(){
                 println!("Network IP Address detected");
             } else {
-                print!("IP: {}... \n", ip.to_s());
                 
                 let v4 = match Ipv4Addr::from_str(ip.to_s().as_str()){
                     Ok(i) => i,
@@ -68,9 +67,10 @@ pub mod targeter {
                 let t_ip = IpAddr::V4(v4);
                 
                 // determine if the target is up
-                o = match ping::ping(t_ip, None, None, None, None, None) {
-                    Ok(_) => {println!("Address is up!"); 0},
-                    Err(e) => {println!("\tdown ({})", e); 1},
+                match ping::ping(t_ip, Some(std::time::Duration::from_secs_f32(PING_FREQ)), None, None, None, None) {
+                    Ok(_) => { return Ok(())}, //println!("IP: {} -> Address is up!", ip.to_s());
+                    Err(errors::Error{errors::ErrorKind::InternalError})  => (),
+                    Err(e) => {println!("Unexpected error: {}", e); ()},
                 };
             }
             
@@ -84,29 +84,40 @@ pub mod targeter {
             let network = locip.network();
             println!("Network: {}", network.to_s());
 
+            // define network prefix
             let x = &network.prefix;
 
+            // define broadcast address, converted to u64
             let bc = match network.broadcast().host_address.to_u64(){
                 Some(x) => x,
                 None => 0,
             };
 
+            // define host address, also converted to u64
             let mut i = match network.host_address.to_u64(){
                 Some(x) => x,
                 None => 0,
             };
             
+            // loop over all addresses
             while i <= bc {
-                // do stuff
+                // prep variables
                 let re = &BigUint::from(i);
+                let tmpip = network.from(re, x);
 
-                match self.check_target(&network.from(re, x)){
-                    // need to find work around for non-mutable access to variables
-                    Ok(x) => {self.valid_ips.push(x.to_s()); ()},
+                // check the target
+                match self.check_target(&tmpip){
+                    Ok(_) => {self.valid_ips.push(tmpip.to_s()); ()},
                     Err(_) => ()
                 }
 
+                // move on
                 i += 1;
+            }
+
+            // print up addresses
+            for i in self.valid_ips.iter(){
+                println!("Up IP: {}", i);
             }
         
             Ok(0)

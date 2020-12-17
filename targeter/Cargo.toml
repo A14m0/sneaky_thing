@@ -10,3 +10,4 @@ edition = "2018"
 ipaddress = "0.1.2"
 ping = "0.2.0"
 num = "0.1.32" # needed for mutable use of ipaddress iteration
+failure = "0.1.8" # needed for handling ping errors
