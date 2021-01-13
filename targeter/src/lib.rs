@@ -1,6 +1,74 @@
 /// Library to determine potential targets on the network
 /// We disregard any machines that are not Windows
 
+extern crate smbclient_sys as smb;
+extern crate libc;
+
+
+/// SMB-based functions, uses smbclient bindings
+pub mod smblib {
+    use std::str;
+    use std::ffi::{CStr, CString};
+    use libc::{c_char, c_int, strncpy, O_RDONLY};
+
+    extern "C" fn auth_data(_srv: *const c_char,
+                _shr: *const c_char,
+                _wg: *mut c_char,
+                _wglen: c_int,
+                _un: *mut c_char,
+                _unlen: c_int,
+                _pw: *mut c_char,
+                _pwlen: c_int) {
+
+        unsafe {
+            // dummy login info. wont need this once we have a working exploit
+            strncpy(_un, CString::new("W. Churchill").unwrap().as_ptr(), 13);
+            strncpy(_pw, CString::new("Password123").unwrap().as_ptr(), 12);
+        }
+    }
+
+    static mut AUTH_CALLBACK: smb::smbc_get_auth_data_fn = Some(auth_data);
+
+    pub fn connect() {
+        println!("Launch...");
+        unsafe {
+            // test server. eventually we want to make the device discoverable on its own
+            let fname = CString::new("smb://192.168.97.132/Documents/test.txt").unwrap();
+
+            // Buffer for contents
+            let dstlen = 300;
+            let mut file_contents = Vec::with_capacity(dstlen as usize);
+
+            smb::smbc_init(AUTH_CALLBACK, 0);
+            let retval: i32 = smb::smbc_open(fname.as_ptr(), O_RDONLY, 0);
+            if retval < 0 {
+                println!("Couldn't accessed to a SMB file (code {})", retval);
+            } else {
+                println!("Accessed to specified SMB file");
+
+                // Read file to buffer
+                let read_val: i64 = smb::smbc_read(retval, file_contents.as_mut_ptr(), dstlen);
+                if read_val > 0 {
+                    // File successfully read, print contents to stdout
+
+                    let c_str: &CStr = CStr::from_ptr(file_contents.as_mut_ptr() as *const i8);
+                    let content_bytes: &[u8] = c_str.to_bytes();
+                    let str_slice: &str = str::from_utf8(content_bytes).unwrap();
+                    let str_buf: String = str_slice.to_owned();
+
+                    println!("{0}", str_buf);
+                } else {
+                    // Panic \o/ if you couldn't read
+                    panic!("Couldn't read file over SMB share");
+                }
+
+                // Close it
+                smb::smbc_close(read_val as i32);
+            }
+        }
+    }
+}
+
 
 /// base structure/class thing for IP targeting 
 pub mod targeter {
@@ -12,7 +80,7 @@ pub mod targeter {
 
     use num::bigint::BigUint;
     use num::ToPrimitive;
-    
+
 
     /// Defines the timeout value for pings
     /// The smaller the value, the faster pings will declare a failed ping

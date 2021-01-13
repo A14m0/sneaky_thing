@@ -417,18 +417,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "smblib"
-version = "0.1.0"
-dependencies = [
- "libc 0.2.82",
- "smbclient-sys",
-]
-
-[[package]]
 name = "sneaky_encryptor"
 version = "0.1.0"
 dependencies = [
- "smblib",
  "targeter",
  "vm_detector",
 ]
@@ -473,8 +464,10 @@ version = "0.1.0"
 dependencies = [
  "failure",
  "ipaddress",
+ "libc 0.2.82",
  "num",
  "ping",
+ "smbclient-sys",
 ]
 
 [[package]]
