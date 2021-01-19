@@ -1,8 +1,26 @@
 Sources to look into:
-    https://sreelakshmip.wordpress.com/2018/03/20/devil-detect-virtual-machine-in-linux/
-    https://github.com/a0rtega/pafish
+    Virtualization Detection:
+        https://sreelakshmip.wordpress.com/2018/03/20/devil-detect-virtual-machine-in-linux/
+        https://github.com/a0rtega/pafish
+
+    MS17-010 Exploit Sources:
+        https://github.com/worawit/MS17-010/blob/master/eternalblue_exploit7.py
+        https://research.checkpoint.com/2017/eternalblue-everything-know/
+
+    Helpful Documentation:
+        https://vertexclique.github.io/smbclient-sys/smbclient_sys/index.html
+        https://docs.python.org/3/library/struct.html
+        https://docs.rs/bytes/1.0.1/bytes/trait.BufMut.html
+
+
+
+
+
+
+Note for evading signiture detection: could randomize unimportant bytes in exploit structure to make checksums different?
 
 Requirements for shellcode, taken from worawit's eternalblue_exploit7.py
+
 # Most field in overwritten (corrupted) srvnet struct can be any value because it will be left without free (memory leak) after processing
 # Here is the important fields on x64
 # - offset 0x58 (VOID*) : pointer to a struct contained pointer to function. the pointer to function is called when done receiving SMB request.
