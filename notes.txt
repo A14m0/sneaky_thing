@@ -2,3 +2,32 @@ Sources to look into:
     https://sreelakshmip.wordpress.com/2018/03/20/devil-detect-virtual-machine-in-linux/
     https://github.com/a0rtega/pafish
 
+Requirements for shellcode, taken from worawit's eternalblue_exploit7.py
+# Most field in overwritten (corrupted) srvnet struct can be any value because it will be left without free (memory leak) after processing
+# Here is the important fields on x64
+# - offset 0x58 (VOID*) : pointer to a struct contained pointer to function. the pointer to function is called when done receiving SMB request.
+#                           The value MUST point to valid (might be fake) struct.
+# - offset 0x70 (MDL)   : MDL for describe receiving SMB request buffer
+#   - 0x70 (VOID*)    : MDL.Next should be NULL
+#   - 0x78 (USHORT)   : MDL.Size should be some value that not too small
+#   - 0x7a (USHORT)   : MDL.MdlFlags should be 0x1004 (MDL_NETWORK_HEADER|MDL_SOURCE_IS_NONPAGED_POOL)
+#   - 0x80 (VOID*)    : MDL.Process should be NULL
+#   - 0x88 (VOID*)    : MDL.MappedSystemVa MUST be a received network buffer address. Controlling this value get arbitrary write.
+#                         The address for arbitrary write MUST be subtracted by a number of sent bytes (0x80 in this exploit).
+#                         
+#
+# To free the corrupted srvnet buffer, shellcode MUST modify some memory value to satisfy condition.
+# Here is related field for freeing corrupted buffer
+# - offset 0x10 (USHORT): be 0xffff to make SrvNetFreeBuffer() really free the buffer (else buffer is pushed to srvnet lookaside)
+#                           a corrupted buffer MUST not be reused.
+# - offset 0x48 (DWORD) : be a number of total byte received. This field MUST be set by shellcode because SrvNetWskReceiveComplete() set it to 0
+#                           before calling SrvNetCommonReceiveHandler(). This is possible because pointer to SRVNET_BUFFER struct is passed to
+#                           your shellcode as function argument
+# - offset 0x60 (PMDL)  : points to any fake MDL with MDL.Flags 0x20 does not set
+# The last condition is your shellcode MUST return non-negative value. The easiest way to do is "xor eax,eax" before "ret".
+# Here is x64 assembly code for setting nByteProcessed field
+# - fetch SRVNET_BUFFER address from function argument
+#     \x48\x8b\x54\x24\x40  mov rdx, [rsp+0x40]
+# - set nByteProcessed for trigger free after return
+#     \x8b\x4a\x2c          mov ecx, [rdx+0x2c]
+#     \x89\x4a\x38          mov [rdx+0x38], ecx

