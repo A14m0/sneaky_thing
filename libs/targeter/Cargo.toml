@@ -1,0 +1,16 @@
+[package]
+name = "targeter"
+version = "0.1.0"
+authors = ["Probably Winston Churchill <nicolas.p.ammann@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ipaddress = "0.1.2"
+ping = "0.2.0" # soon to be deprecated and removed
+num = "0.1.32" # needed for mutable use of ipaddress iteration
+failure = "0.1.8" # needed for handling ping errors
+smbclient-sys = "0.1.0"
+libc = "0.2.82"
+bytes = "1.0.1"
