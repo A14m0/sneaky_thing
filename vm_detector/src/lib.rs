@@ -16,21 +16,25 @@ impl CheckVM {
     /// NOTE: THE BELOW IS BASICALLY THE WORK OF a0rtega's pafish PROGRAM
     // doubley-internal cpu brand getter (uses CPUID)
     fn _get_cpu_brand(&mut self, buffer: &mut [u8], offset: usize, level: u32){
-        let mut eax: u32 = level;
-        let mut ebx: u32;
-        let mut ecx: u32;
-        let mut edx: u32;
+        let mut rax: u32 = level;
+        let mut rbx: u32;
+        let mut rcx: u32;
+        let mut rdx: u32;
 
         // run CPUID with special flags
-        unsafe{asm!{"mov eax, ebx", in("ebx") eax}};
-        unsafe{asm!{"cpuid", inout("rax") eax, out("ebx") ebx,
-                                            out("ecx") ecx, out("edx") edx}};
-
+        unsafe{asm!{"xchg rcx, rbx",
+                    "mov rax, rbx", in("rcx") level}};
+        unsafe{asm!{"cpuid", in("rax") rax}};
+        unsafe{asm!{"mov {:e}, rax", out(reg) rax}};
+        unsafe{asm!{"mov {:e}, rbx", out(reg) rbx}};
+        unsafe{asm!{"mov {:e}, rcx", out(reg) rcx}};
+        unsafe{asm!{"mov {:e}, rdx", out(reg) rdx}};
+                                            
         // convert to u8 bytes
-        let eax_bytes = eax.to_be_bytes();
-        let ebx_bytes = ebx.to_be_bytes();
-        let ecx_bytes = ecx.to_be_bytes();
-        let edx_bytes = edx.to_be_bytes();
+        let eax_bytes = rax.to_be_bytes();
+        let ebx_bytes = rbx.to_be_bytes();
+        let ecx_bytes = rcx.to_be_bytes();
+        let edx_bytes = rdx.to_be_bytes();
 
 
         //https://github.com/a0rtega/pafish/blob/master/pafish/bochs.c
@@ -81,20 +85,23 @@ impl CheckVM {
     }
 
     fn get_cpu_vendor(&mut self, cpu_vendor: &mut [u8]){
-        let mut ebx: u32;
-        let mut ecx: u32;
-        let mut edx: u32;
+        let mut rbx: u32;
+        let mut rcx: u32;
+        let mut rdx: u32;
 
         // so this is actually the part that doesnt work...
         unsafe{asm!{"xor eax, eax"}};
         unsafe{asm!{"cpuid"}};
-        unsafe{asm!{"nop", out("ebx") ebx, out("ecx") ecx, out("edx") edx}};
-
+        // fetch the stuff
+        unsafe{asm!{"mov {:e}, rbx", out(reg) rbx}};
+        unsafe{asm!{"mov {:e}, rcx", out(reg) rcx}};
+        unsafe{asm!{"mov {:e}, rdx", out(reg) rdx}};
+        
 
         // convert to u8 bytes
-        let ebx_bytes = ebx.to_be_bytes();
-        let ecx_bytes = ecx.to_be_bytes();
-        let edx_bytes = edx.to_be_bytes();
+        let ebx_bytes = rbx.to_be_bytes();
+        let ecx_bytes = rcx.to_be_bytes();
+        let edx_bytes = rdx.to_be_bytes();
 
 
         //https://github.com/a0rtega/pafish/blob/master/pafish/bochs.c
