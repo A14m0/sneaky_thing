@@ -1,2 +1,4 @@
 /target
 Cargo.lock
+src/dropper/target
+src/payload/target

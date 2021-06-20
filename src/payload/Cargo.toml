@@ -1,0 +1,15 @@
+[package]
+name = "payload"
+version = "0.1.0"
+authors = ["Probably Winston Churchill <nicolas.p.ammann@gmail.com>"]
+edition = "2018"
+
+[workspace]
+members = ["vm_detector"]
+
+[[bin]]
+name = "payload"
+path = "main.rs"
+[dependencies]
+winapi = "0.3.8"
+vm_detector = {path="vm_detector", version="*"}

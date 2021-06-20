@@ -1,5 +1,5 @@
 # sneaky_thing
-A Rust-based worm that totally doesn't follow the exploitation vectors NotPetya does... 
+A Rust-based dropper/payload that exploits MS-17-010.
 
 # message
 When life gives you lemons, don't make lemonade, make life take the lemons back! GET MAD!
